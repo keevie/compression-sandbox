@@ -1,0 +1,68 @@
+<input type='file' onchange="readURL(this);" />
+
+<label for='quality'>Quality</label>
+<input id='quality' type='number' value=1 min=0.01 max=1 />
+
+<label for='width'>output width</label>
+<input id='width' type='number' value="1600" />
+
+<select id='type'>
+  <option>image/jpeg</option>
+  <option>image/webp</option>
+</select>
+<button onclick="compress()">compress!</button>
+<span id='results'></span>
+<h3>uncompressed</h3>
+<canvas id="myCanvas"></canvas>
+<h3>compressed</h3>
+<img id="compressed"/>
+
+<script>
+  let ready = false
+  const inputImg = new Image();
+  function readURL(input) {
+    if (input.files && input.files[0]) {
+      var reader = new FileReader();
+
+      reader.addEventListener(
+        "load",
+        function() {
+          var src = reader.result;
+          inputImg.src = src;
+          inputImg.onload = function() {
+            ready = true;
+          };
+        },
+        false
+      );
+
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+  function compress() {
+    const c = document.getElementById("myCanvas");
+    const ctx = c.getContext("2d");
+    ctx.canvas.width = inputImg.width
+    ctx.canvas.height = inputImg.height
+    ctx.drawImage(inputImg, 0, 0);
+    const uncompressed = c.toDataURL();
+    const kbytesBefore = uncompressed.length / 1000
+    ctx.clearRect(0, 0, c.width, c.height);
+    const targetWidth = document.getElementById('width').value;
+
+    const ratio = (targetWidth / inputImg.width)
+    const width = inputImg.width * ratio;
+    const height = inputImg.height * ratio;
+    ctx.canvas.width = width
+    ctx.canvas.height = height
+    const start = Date.now()
+    ctx.drawImage(inputImg, 0, 0, width, height);
+    const quality = document.getElementById('quality').value;
+    const type = document.getElementById('type').value;
+    const compressed = c.toDataURL(type, parseFloat(quality))
+    const kbytesAfter = compressed.length / 1000
+    document.getElementById('results').innerText = `took: ${Date.now() - start}ms, kbytesBefore: ${kbytesBefore}, kbytesAfter: ${kbytesAfter}`
+    document.getElementById('compressed').src = compressed
+  }
+
+</script>
