@@ -3,6 +3,9 @@
 <label for='quality'>Quality</label>
 <input id='quality' type='number' value=1 min=0.01 max=1 />
 
+<label for='iters'>resize iterations</label>
+<input id='iters' type='number' value="5" />
+
 <label for='width'>output width</label>
 <input id='width' type='number' value="1600" />
 
@@ -39,6 +42,18 @@
       reader.readAsDataURL(input.files[0]);
     }
   }
+  const getSteps = (steps, original, target) => {
+    const stepSize = Math.floor((original - target) / steps);
+    const result = new Array(steps).fill(1)
+    let prevStep = original
+    for (let i=0; i<steps; i++) {
+      result[i] = prevStep - stepSize
+      prevStep = result[i]
+    }
+    result[result.length -1] = parseInt(target);
+    return result;
+  }
+
   function compress() {
     const c = document.getElementById("myCanvas");
     const ctx = c.getContext("2d");
@@ -49,14 +64,26 @@
     const kbytesBefore = uncompressed.length / 1000
     ctx.clearRect(0, 0, c.width, c.height);
     const targetWidth = document.getElementById('width').value;
+    const numSteps = document.getElementById('iters').value;
+    const ratio = (inputImg.width / inputImg.height)
 
-    const ratio = (targetWidth / inputImg.width)
-    const width = inputImg.width * ratio;
-    const height = inputImg.height * ratio;
-    ctx.canvas.width = width
-    ctx.canvas.height = height
     const start = Date.now()
-    ctx.drawImage(inputImg, 0, 0, width, height);
+    const steps = getSteps(numSteps, inputImg.width, targetWidth)
+    const can2 = document.createElement('canvas');
+    const ctx2 = can2.getContext('2d')
+    can2.width = inputImg.width
+    can2.height = inputImg.height
+
+    for (const [idx, step] of steps.entries()) {
+      const width = step
+      const height = step / ratio
+      idx == 0 ? ctx2.drawImage(inputImg, 0, 0, width, height)
+      : ctx2.drawImage(can2, 0, 0, steps[idx -1], steps[idx-1] /ratio, 0, 0, width, height)
+      console.log(idx, width, height)
+    }
+    ctx.canvas.width = targetWidth
+    ctx.canvas.height = targetWidth / ratio
+    ctx.drawImage(can2, 0, 0, targetWidth, targetWidth / ratio,0, 0, targetWidth, targetWidth / ratio);
     const quality = document.getElementById('quality').value;
     const type = document.getElementById('type').value;
     const compressed = c.toDataURL(type, parseFloat(quality))
